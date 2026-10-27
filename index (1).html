@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MERA — Stock Agent Showdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1210;
+    --panel:#101A17;
+    --panel-2:#0D1614;
+    --line:#233330;
+    --text:#EDF2EF;
+    --text-dim:#93A39C;
+    --amber:#E8A33D;
+    --amber-dim:#8C6A2F;
+    --alpha:#49D3C6;
+    --alpha-dim:#1F4B47;
+    --vega:#E8637C;
+    --vega-dim:#5A2833;
+    --up:#5FD08A;
+    --down:#E8637C;
+    --bg-body:#070B0A;
+    --shadow: 0 20px 50px -20px rgba(0,0,0,.6);
+  }
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#F2F1EA;
+      --panel:#FFFFFF;
+      --panel-2:#EAE7DD;
+      --line:#D8D4C6;
+      --text:#171814;
+      --text-dim:#5B6058;
+      --bg-body:#EDEAE0;
+      --shadow: 0 20px 40px -24px rgba(20,20,10,.25);
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#F2F1EA;
+    --panel:#FFFFFF;
+    --panel-2:#EAE7DD;
+    --line:#D8D4C6;
+    --text:#171814;
+    --text-dim:#5B6058;
+    --bg-body:#EDEAE0;
+    --shadow: 0 20px 40px -24px rgba(20,20,10,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-body);
+    color:var(--text);
+    font-family:'Archivo',-apple-system,'Helvetica Neue',Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 14px 60px;
+  }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .app{
+    width:100%;
+    max-width:920px;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand .mark{
+    font-weight:800;
+    font-size:26px;
+    letter-spacing:-0.01em;
+    color:var(--text);
+  }
+  .brand .tag{
+    font-family:'IBM Plex Mono';
+    font-size:12px;
+    color:var(--amber);
+    border:1px solid var(--amber-dim);
+    padding:3px 8px;
+    border-radius:3px;
+  }
+  .status-strip{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    font-family:'IBM Plex Mono';
+    font-size:13px;
+    color:var(--text-dim);
+  }
+  .status-strip b{ color:var(--text); font-weight:600; }
+  .score-up{ color:var(--up); }
+  .score-down{ color:var(--down); }
+
+  .card-shell{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+  }
+
+  /* ---------- START SCREEN ---------- */
+  .start-screen{ padding:34px 30px; }
+  .start-screen h1{
+    font-size:clamp(28px,4.4vw,40px);
+    line-height:1.05;
+    margin:0 0 10px;
+    font-weight:800;
+    letter-spacing:-0.015em;
+  }
+  .start-screen .sub{
+    color:var(--text-dim);
+    font-size:15px;
+    max-width:56ch;
+    line-height:1.55;
+    margin:0 0 24px;
+  }
+  .agent-intro{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:24px;
+  }
+  @media (max-width:600px){ .agent-intro{grid-template-columns:1fr;} }
+  .agent-chip{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 16px;
+    background:var(--panel-2);
+  }
+  .agent-chip .name{ font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .agent-chip .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .agent-chip .style{ font-family:'IBM Plex Mono'; font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .agent-chip .desc{ font-size:13px; color:var(--text-dim); margin-top:8px; line-height:1.5;}
+
+  .rules{
+    font-size:13.5px;
+    color:var(--text-dim);
+    line-height:1.7;
+    margin:0 0 26px;
+    padding-left:0;
+    list-style:none;
+  }
+  .rules li{ padding-left:20px; position:relative; }
+  .rules li::before{
+    content:"—";
+    position:absolute; left:0; color:var(--amber-dim);
+  }
+
+  .btn{
+    font-family:'Archivo';
+    font-weight:700;
+    font-size:15px;
+    border:none;
+    border-radius:7px;
+    padding:13px 22px;
+    cursor:pointer;
+    transition:transform .12s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:var(--amber); color:#1A1200; }
+  .btn-primary:hover{ opacity:.92; }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--text);
+  }
+  .btn-approve{ background:var(--up); color:#062012; }
+  .btn-reject{ background:transparent; border:1px solid var(--vega); color:var(--vega); }
+  .btn:disabled{ opacity:.35; cursor:default; transform:none; }
+
+  .leaderboard-mini{
+    margin-top:8px;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .leaderboard-mini h3{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--text-dim);
+    font-weight:600;
+    margin:0 0 10px;
+  }
+  .lb-row{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono';
+    font-size:13px;
+    padding:5px 0;
+    color:var(--text-dim);
+  }
+  .lb-row .rank{ color:var(--text); width:22px; display:inline-block; }
+  .lb-row.top{ color:var(--amber); }
+
+  /* ---------- GAME SCREEN ---------- */
+  .game-wrap{ display:none; }
+  .game-wrap.active{ display:block; }
+  .start-screen.hidden{ display:none; }
+
+  .round-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:16px;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .round-bar .round-label{
+    font-weight:700;
+    font-size:15px;
+  }
+  .timer-wrap{
+    flex:1;
+    min-width:120px;
+    height:6px;
+    background:var(--panel-2);
+    border-radius:4px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .timer-fill{
+    height:100%;
+    background:var(--amber);
+    width:100%;
+    transition:width 1s linear, background .3s;
+  }
+  .timer-fill.urgent{ background:var(--vega); }
+
+  .cards-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  @media (max-width:640px){ .cards-row{grid-template-columns:1fr;} }
+
+  .proposal-card{
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    position:relative;
+    overflow:hidden;
+  }
+  .proposal-card.alpha{ border-top:3px solid var(--alpha); }
+  .proposal-card.vega{ border-top:3px solid var(--vega); }
+
+  .pc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .pc-agent{
+    font-size:13px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .pc-agent .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .pc-conf{
+    font-family:'IBM Plex Mono';
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .pc-ticker{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .pc-ticker .sym{ font-family:'IBM Plex Mono'; font-size:22px; font-weight:600; }
+  .pc-ticker .action{
+    font-family:'IBM Plex Mono';
+    font-size:13px;
+    font-weight:600;
+    padding:2px 8px;
+    border-radius:3px;
+  }
+  .action.buy{ background:rgba(95,208,138,.15); color:var(--up); }
+  .action.sell{ background:rgba(232,99,124,.15); color:var(--down); }
+  .pc-name{ font-size:12px; color:var(--text-dim); margin-top:-6px; }
+  .pc-price{ font-family:'IBM Plex Mono'; font-size:13px; color:var(--text-dim); }
+
+  .spark{ width:100%; height:44px; display:block; }
+
+  .pc-rationale{
+    font-size:13px;
+    color:var(--text-dim);
+    line-height:1.5;
+    border-left:2px solid var(--line);
+    padding-left:10px;
+  }
+
+  .pc-actions{
+    display:flex;
+    gap:8px;
+    margin-top:auto;
+  }
+  .pc-actions .btn{ flex:1; padding:10px 10px; font-size:13.5px; }
+
+  .decision-tag{
+    position:absolute;
+    top:14px; right:14px;
+    font-family:'IBM Plex Mono';
+    font-size:11px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:3px;
+    display:none;
+  }
+  .decision-tag.approved{ display:block; background:rgba(95,208,138,.18); color:var(--up); }
+  .decision-tag.rejected{ display:block; background:rgba(232,99,124,.18); color:var(--vega); }
+
+  .reveal-note{
+    margin-top:4px;
+    font-family:'IBM Plex Mono';
+    font-size:12.5px;
+    padding:8px 10px;
+    border-radius:6px;
+    border:1px dashed var(--line);
+    color:var(--text-dim);
+    display:none;
+  }
+  .reveal-note.show{ display:block; }
+  .reveal-note.good{ color:var(--up); border-color:var(--up); }
+  .reveal-note.bad{ color:var(--down); border-color:var(--down); }
+
+  .next-row{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+  }
+
+  /* ---------- END SCREEN ---------- */
+  .end-screen{ display:none; padding:34px 30px; text-align:left; }
+  .end-screen.active{ display:block; }
+  .end-screen .rank-title{
+    font-size:12px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--amber); font-weight:700; margin-bottom:6px;
+  }
+  .end-screen h1{ font-size:clamp(26px,4vw,36px); margin:0 0 4px; font-weight:800; }
+  .end-screen .final-score{
+    font-family:'IBM Plex Mono'; font-size:15px; color:var(--text-dim); margin-bottom:22px;
+  }
+  .recap-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:24px;
+  }
+  @media (max-width:600px){ .recap-grid{grid-template-columns:1fr;} }
+  .recap-card{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 16px;
+    background:var(--panel-2);
+  }
+  .recap-card .label{ font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+  .recap-card .value{ font-family:'IBM Plex Mono'; font-size:22px; font-weight:600; margin-top:4px; }
+  .end-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  footer.credit{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:11.5px;
+    margin-top:20px;
+    font-family:'IBM Plex Mono';
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <span class="mark">MERA</span>
+      <span class="tag">stock agent showdown</span>
+    </div>
+    <div class="status-strip" id="statusStrip" style="display:none;"></div>
+  </header>
+
+  <!-- START -->
+  <div class="card-shell start-screen" id="startScreen">
+    <h1>Two agents. One desk. Your call.</h1>
+    <p class="sub">Each round, two trading agents pitch a move on the same volatile market. You approve or reject each pitch before the clock runs out. Ten rounds, real consequences, no real money.</p>
+
+    <div class="agent-intro">
+      <div class="agent-chip">
+        <div class="name"><span class="dot" style="background:var(--alpha)"></span>Agent ARIA</div>
+        <div class="style mono">momentum desk</div>
+        <div class="desc">Chases breakouts and volume spikes. Confident, fast, occasionally chasing ghosts.</div>
+      </div>
+      <div class="agent-chip">
+        <div class="name"><span class="dot" style="background:var(--vega)"></span>Agent VESPER</div>
+        <div class="style mono">contrarian desk</div>
+        <div class="desc">Hunts oversold names and mean reversion. Patient, skeptical, sometimes early.</div>
+      </div>
+    </div>
+
+    <ul class="rules">
+      <li>12 seconds per round to approve or reject each pitch — no decision reads as a reject.</li>
+      <li>Approve a winner, earn points. Approve a loser, lose points.</li>
+      <li>Reject a loser, small reward. Reject a winner, small penalty for the miss.</li>
+      <li>Higher agent confidence means bigger swings, up or down.</li>
+    </ul>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-primary" id="startBtn">Play the desk</button>
+      <button class="btn btn-ghost" id="autoBtn">Watch ARIA vs VESPER</button>
+    </div>
+    <p class="sub" style="margin-top:12px; margin-bottom:0; font-size:13px;">"Play the desk" — you approve or reject each pitch. "Watch ARIA vs VESPER" — no buttons, the two agents each back their own call and whoever reads the market right takes the round.</p>
+
+    <div class="leaderboard-mini" id="lbMiniWrap" style="display:none; margin-top:22px;">
+      <h3>Best runs on this device</h3>
+      <div id="lbMiniList"></div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="game-wrap" id="gameWrap">
+    <div class="round-bar">
+      <span class="round-label">Round <span id="roundNum" class="mono">1</span> / <span id="roundTotal" class="mono">10</span></span>
+      <div class="timer-wrap" id="timerWrap"><div class="timer-fill" id="timerFill"></div></div>
+      <button class="btn btn-ghost" id="skipBtn" style="display:none; padding:8px 14px; font-size:12.5px;">Skip to results</button>
+    </div>
+
+    <div class="cards-row" id="cardsRow"></div>
+
+    <div class="next-row">
+      <button class="btn btn-primary" id="nextBtn" style="display:none;">Next round →</button>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div class="card-shell end-screen" id="endScreen">
+    <div class="rank-title" id="rankTitle">DESK ANALYST</div>
+    <h1 id="endHeadline">Showdown complete.</h1>
+    <div class="final-score mono" id="endScoreLine">Final score: 0</div>
+
+    <div class="recap-grid">
+      <div class="recap-card">
+        <div class="label">Agent ARIA accuracy</div>
+        <div class="value" id="ariaAcc">—</div>
+      </div>
+      <div class="recap-card">
+        <div class="label">Agent VESPER accuracy</div>
+        <div class="value" id="vesperAcc">—</div>
+      </div>
+    </div>
+
+    <div class="leaderboard-mini" style="border-top:none; padding-top:0; margin-top:0;">
+      <h3>Best runs on this device</h3>
+      <div id="lbEndList"></div>
+    </div>
+
+    <div class="end-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" id="playAgainBtn">Play again</button>
+    </div>
+  </div>
+
+  <footer class="credit">MERA · simulated market data · nothing here is investment advice</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STOCKS = [
+    {sym:"NOVA", name:"Nova Robotics", price:142.30},
+    {sym:"QNTM", name:"Quantum Foundry", price:58.10},
+    {sym:"HLIX", name:"Helix Biogen", price:24.75},
+    {sym:"AERO", name:"Aerowave Systems", price:301.60},
+    {sym:"GRDN", name:"Gridline Energy", price:67.90},
+    {sym:"VLTX", name:"Voltix Materials", price:12.40},
+    {sym:"ORBT", name:"Orbit Logistics", price:89.15},
+    {sym:"PXLB", name:"Pixelbound Media", price:45.20}
+  ];
+
+  var MOMENTUM_REASONS = [
+    "Volume up {x}% over the last 3 sessions, breaking the range high.",
+    "Relative strength leading the sector by a wide margin this week.",
+    "Gap-up held for two sessions — buyers defending the level.",
+    "Options flow skewed heavily toward calls near current price.",
+    "Breaking above the 20-day average on above-average volume."
+  ];
+  var CONTRARIAN_REASONS = [
+    "Trading {x}% below the 50-day average — stretched on the downside.",
+    "RSI deep in oversold territory, no fresh bad news behind the drop.",
+    "Short interest climbing while fundamentals stayed flat — squeeze risk.",
+    "Insider buying flagged this week near current levels.",
+    "Sentiment indicators at a multi-month low — classic capitulation setup."
+  ];
+
+  var TOTAL_ROUNDS = 10;
+  var ROUND_SECONDS = 12;
+
+  var state = null;
+
+  function rand(min, max){ return Math.random() * (max - min) + min; }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function fmt(n){ return (n>=0?"+":"") + n.toFixed(2); }
+
+  function newSession(mode){
+    return {
+      mode: mode || "manual",
+      round: 0,
+      score: 0,
+      ariaWins: 0,
+      vesperWins: 0,
+      history: [],
+      agentStats: {
+        alpha: {correct:0, total:0},
+        vega: {correct:0, total:0}
+      },
+      timer: null,
+      advanceTimer: null,
+      secondsLeft: ROUND_SECONDS,
+      currentPair: null,
+      decisions: {alpha:null, vega:null},
+      revealed: false
+    };
+  }
+
+  function genSparkPath(basePrice, volatility){
+    var pts = [basePrice];
+    for(var i=1;i<9;i++){
+      var last = pts[i-1];
+      var move = last * rand(-volatility, volatility);
+      pts.push(Math.max(1, last + move));
+    }
+    return pts;
+  }
+
+  function sparkSVG(pts, colorVar){
+    var w=260, h=44, pad=4;
+    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts);
+    var range = (max-min) || 1;
+    var step = (w - pad*2) / (pts.length-1);
+    var d = pts.map(function(p,i){
+      var x = pad + i*step;
+      var y = h - pad - ((p-min)/range)*(h-pad*2);
+      return (i===0?"M":"L") + x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">' +
+      '<path d="'+d+'" fill="none" stroke="'+colorVar+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>';
+  }
+
+  function makeProposal(agentKey, stock){
+    var confidenceRoll = Math.random();
+    var confidence = confidenceRoll > 0.7 ? "High" : (confidenceRoll > 0.35 ? "Med" : "Low");
+    var confMult = confidence === "High" ? 1.5 : (confidence === "Med" ? 1 : 0.7);
+    var hitProb = confidence === "High" ? 0.68 : (confidence === "Med" ? 0.55 : 0.46);
+
+    var action, reasonTemplate, vol;
+    if(agentKey === "alpha"){
+      action = "BUY";
+      reasonTemplate = pick(MOMENTUM_REASONS);
+      vol = 0.05;
+    } else {
+      action = Math.random() > 0.5 ? "BUY" : "SELL";
+      reasonTemplate = pick(CONTRARIAN_REASONS);
+      vol = 0.04;
+    }
+    var reasonNum = Math.round(rand(8, 34));
+    var reason = reasonTemplate.replace("{x}", reasonNum);
+
+    var pts = genSparkPath(stock.price, vol);
+    var currentPrice = pts[pts.length-1];
+
+    var willBeCorrect = Math.random() < hitProb;
+    var moveMag = rand(1.5, 9) * confMult;
+    var actualPct;
+    if(willBeCorrect){
+      actualPct = action === "BUY" ? moveMag : -moveMag;
+    } else {
+      actualPct = action === "BUY" ? -moveMag : moveMag;
+    }
+
+    return {
+      agentKey: agentKey,
+      agentName: agentKey === "alpha" ? "Agent ARIA" : "Agent VESPER",
+      stock: stock,
+      action: action,
+      confidence: confidence,
+      confMult: confMult,
+      reason: reason,
+      sparkPts: pts,
+      currentPrice: currentPrice,
+      actualPct: actualPct,
+      wasCorrect: willBeCorrect
+    };
+  }
+
+  function startGame(mode){
+    state = newSession(mode);
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("endScreen").classList.remove("active");
+    document.getElementById("gameWrap").classList.add("active");
+    document.getElementById("statusStrip").style.display = "flex";
+    document.getElementById("roundTotal").textContent = TOTAL_ROUNDS;
+    document.getElementById("skipBtn").style.display = state.mode === "auto" ? "inline-block" : "none";
+    document.getElementById("timerWrap").style.display = state.mode === "auto" ? "none" : "block";
+    nextRound();
+  }
+
+  function renderStatusStrip(){
+    var strip = document.getElementById("statusStrip");
+    if(state.mode === "auto"){
+      strip.innerHTML =
+        '<span>ROUND <b class="mono">'+state.round+'</b>/<b class="mono">'+TOTAL_ROUNDS+'</b></span>' +
+        '<span style="color:var(--alpha)">ARIA <b class="mono">'+state.ariaWins+'</b></span>' +
+        '<span style="color:var(--vega)">VESPER <b class="mono">'+state.vesperWins+'</b></span>';
+    } else {
+      strip.innerHTML =
+        '<span>ROUND <b class="mono">'+state.round+'</b>/<b class="mono">'+TOTAL_ROUNDS+'</b></span>' +
+        '<span>SCORE <b class="mono '+(state.score>0?"score-up":(state.score<0?"score-down":""))+'">'+state.score+'</b></span>';
+    }
+  }
+
+  function nextRound(){
+    clearTimeout(state.advanceTimer);
+    state.round++;
+    state.decisions = {alpha:null, vega:null};
+    state.revealed = false;
+    document.getElementById("nextBtn").style.display = "none";
+
+    document.getElementById("roundNum").textContent = state.round;
+    renderStatusStrip();
+
+    var picks = shuffle(STOCKS).slice(0,2);
+    var alphaProp = makeProposal("alpha", picks[0]);
+    var vegaProp = makeProposal("vega", picks[1]);
+    state.currentPair = {alpha: alphaProp, vega: vegaProp};
+
+    renderCards();
+
+    if(state.mode === "auto"){
+      ["alpha","vega"].forEach(function(key){ state.decisions[key] = "approve"; });
+      state.advanceTimer = setTimeout(revealAuto, 700);
+    } else {
+      startTimer();
+    }
+  }
+
+  function renderCards(){
+    var row = document.getElementById("cardsRow");
+    row.innerHTML = "";
+    row.appendChild(renderCard(state.currentPair.alpha, "alpha"));
+    row.appendChild(renderCard(state.currentPair.vega, "vega"));
+  }
+
+  function renderCard(p, key){
+    var wrap = document.createElement("div");
+    wrap.className = "card-shell proposal-card " + key;
+    wrap.id = "card-" + key;
+
+    var colorVar = key === "alpha" ? "var(--alpha)" : "var(--vega)";
+    var dotColor = colorVar;
+
+    wrap.innerHTML =
+      '<div class="decision-tag" id="tag-'+key+'"></div>' +
+      '<div class="pc-head">' +
+        '<div class="pc-agent"><span class="dot" style="background:'+dotColor+'"></span>' + p.agentName + '</div>' +
+        '<div class="pc-conf">' + p.confidence.toUpperCase() + ' CONF</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="pc-ticker"><span class="sym">' + p.stock.sym + '</span><span class="action ' + (p.action==='BUY'?'buy':'sell') + '">' + p.action + '</span></div>' +
+        '<div class="pc-name">' + p.stock.name + '</div>' +
+      '</div>' +
+      sparkSVG(p.sparkPts, colorVar) +
+      '<div class="pc-price">last ' + p.currentPrice.toFixed(2) + '</div>' +
+      '<div class="pc-rationale">' + p.reason + '</div>' +
+      (state.mode === "auto"
+        ? '<div class="pc-conf" style="align-self:flex-start;">BACKING OWN CALL</div>'
+        : '<div class="pc-actions">' +
+            '<button class="btn btn-approve" data-key="'+key+'" data-choice="approve">Approve</button>' +
+            '<button class="btn btn-reject" data-key="'+key+'" data-choice="reject">Reject</button>' +
+          '</div>'
+      ) +
+      '<div class="reveal-note" id="reveal-'+key+'"></div>';
+
+    if(state.mode !== "auto"){
+      wrap.querySelectorAll(".pc-actions .btn").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          decide(key, btn.getAttribute("data-choice"));
+        });
+      });
+    }
+
+    return wrap;
+  }
+
+  function decide(key, choice){
+    if(state.decisions[key] !== null) return;
+    state.decisions[key] = choice;
+    var tag = document.getElementById("tag-"+key);
+    tag.textContent = choice === "approve" ? "APPROVED" : "REJECTED";
+    tag.className = "decision-tag " + (choice === "approve" ? "approved" : "rejected");
+    var card = document.getElementById("card-"+key);
+    card.querySelectorAll(".pc-actions .btn").forEach(function(b){ b.disabled = true; });
+
+    if(state.decisions.alpha !== null && state.decisions.vega !== null){
+      clearInterval(state.timer);
+      reveal();
+    }
+  }
+
+  function startTimer(){
+    state.secondsLeft = ROUND_SECONDS;
+    updateTimerBar();
+    clearInterval(state.timer);
+    state.timer = setInterval(function(){
+      state.secondsLeft--;
+      updateTimerBar();
+      if(state.secondsLeft <= 0){
+        clearInterval(state.timer);
+        ["alpha","vega"].forEach(function(key){
+          if(state.decisions[key] === null) decide(key, "reject");
+        });
+      }
+    }, 1000);
+  }
+
+  function updateTimerBar(){
+    var fill = document.getElementById("timerFill");
+    var pct = Math.max(0, (state.secondsLeft / ROUND_SECONDS) * 100);
+    fill.style.width = pct + "%";
+    fill.className = "timer-fill" + (state.secondsLeft <= 4 ? " urgent" : "");
+  }
+
+  function reveal(){
+    if(state.revealed) return;
+    state.revealed = true;
+
+    ["alpha","vega"].forEach(function(key){
+      var p = state.currentPair[key];
+      var choice = state.decisions[key];
+      var stats = state.agentStats[key];
+      stats.total++;
+      if(p.wasCorrect) stats.correct++;
+
+      var delta = 0;
+      var noteText, noteClass;
+      var pctText = fmt(p.actualPct) + "%";
+
+      if(choice === "approve"){
+        if(p.wasCorrect){
+          delta = Math.round(10 * p.confMult);
+          noteText = "Call landed (" + pctText + "). +" + delta + " pts.";
+          noteClass = "good";
+        } else {
+          delta = -8;
+          noteText = "Call missed (" + pctText + "). " + delta + " pts.";
+          noteClass = "bad";
+        }
+      } else {
+        if(p.wasCorrect){
+          delta = -4;
+          noteText = "Would've landed (" + pctText + "). Missed gain, " + delta + " pts.";
+          noteClass = "bad";
+        } else {
+          delta = 6;
+          noteText = "Dodged a bad call (" + pctText + "). +" + delta + " pts.";
+          noteClass = "good";
+        }
+      }
+
+      state.score += delta;
+      var note = document.getElementById("reveal-"+key);
+      note.textContent = noteText;
+      note.className = "reveal-note show " + noteClass;
+    });
+
+    renderStatusStrip();
+
+    var fill = document.getElementById("timerFill");
+    fill.style.width = "0%";
+
+    if(state.round >= TOTAL_ROUNDS){
+      document.getElementById("nextBtn").textContent = "See results →";
+    } else {
+      document.getElementById("nextBtn").textContent = "Next round →";
+    }
+    document.getElementById("nextBtn").style.display = "inline-block";
+  }
+
+  function revealAuto(){
+    if(state.revealed) return;
+    state.revealed = true;
+
+    ["alpha","vega"].forEach(function(key){
+      var p = state.currentPair[key];
+      var stats = state.agentStats[key];
+      stats.total++;
+      var pctText = fmt(p.actualPct) + "%";
+      var note = document.getElementById("reveal-"+key);
+      if(p.wasCorrect){
+        stats.correct++;
+        if(key === "alpha") state.ariaWins++; else state.vesperWins++;
+        note.textContent = "Right call (" + pctText + "). Takes the round.";
+        note.className = "reveal-note show good";
+      } else {
+        note.textContent = "Wrong call (" + pctText + ").";
+        note.className = "reveal-note show bad";
+      }
+    });
+
+    renderStatusStrip();
+
+    state.advanceTimer = setTimeout(function(){
+      if(state.round >= TOTAL_ROUNDS){
+        endGame();
+      } else {
+        nextRound();
+      }
+    }, 1900);
+  }
+
+  function skipToResults(){
+    clearTimeout(state.advanceTimer);
+    clearInterval(state.timer);
+    // fast-forward any undecided current round silently
+    if(state.currentPair && !state.revealed){
+      ["alpha","vega"].forEach(function(key){
+        var p = state.currentPair[key];
+        var stats = state.agentStats[key];
+        stats.total++;
+        if(p.wasCorrect){
+          stats.correct++;
+          if(key === "alpha") state.ariaWins++; else state.vesperWins++;
+        }
+      });
+    }
+    // simulate remaining rounds without rendering
+    for(var r = state.round + 1; r <= TOTAL_ROUNDS; r++){
+      var picks = shuffle(STOCKS).slice(0,2);
+      var alphaProp = makeProposal("alpha", picks[0]);
+      var vegaProp = makeProposal("vega", picks[1]);
+      [["alpha",alphaProp],["vega",vegaProp]].forEach(function(pair){
+        var key = pair[0], p = pair[1];
+        var stats = state.agentStats[key];
+        stats.total++;
+        if(p.wasCorrect){
+          stats.correct++;
+          if(key === "alpha") state.ariaWins++; else state.vesperWins++;
+        }
+      });
+    }
+    state.round = TOTAL_ROUNDS;
+    endGame();
+  }
+
+  function handleNext(){
+    if(state.round >= TOTAL_ROUNDS){
+      endGame();
+    } else {
+      nextRound();
+    }
+  }
+
+  function rankFor(score){
+    if(score < 0) return ["REKT", "That desk needed a stop-loss."];
+    if(score <= 40) return ["ROOKIE TRADER", "Solid first session — the tape gets easier to read."];
+    if(score <= 90) return ["DESK ANALYST", "Sharp instincts. A few calls away from the top desk."];
+    if(score <= 150) return ["PORTFOLIO MANAGER", "Consistently ahead of both agents today."];
+    return ["MARKET LEGEND", "Both agents want your job."];
+  }
+
+  function endGame(){
+    clearTimeout(state.advanceTimer);
+    document.getElementById("gameWrap").classList.remove("active");
+    document.getElementById("statusStrip").style.display = "none";
+    document.getElementById("endScreen").classList.add("active");
+
+    var a = state.agentStats.alpha, v = state.agentStats.vega;
+
+    if(state.mode === "auto"){
+      var winner, headline;
+      if(state.ariaWins > state.vesperWins){
+        winner = "ARIA WINS THE DESK"; headline = "Momentum beat mean reversion today.";
+      } else if(state.vesperWins > state.ariaWins){
+        winner = "VESPER WINS THE DESK"; headline = "Contrarian reads paid off today.";
+      } else {
+        winner = "DEAD HEAT"; headline = "Neither desk could shake the other.";
+      }
+      document.getElementById("rankTitle").textContent = winner;
+      document.getElementById("endHeadline").textContent = headline;
+      document.getElementById("endScoreLine").textContent = "Final record: ARIA " + state.ariaWins + " — VESPER " + state.vesperWins;
+    } else {
+      var rank = rankFor(state.score);
+      document.getElementById("rankTitle").textContent = rank[0];
+      document.getElementById("endHeadline").textContent = rank[1];
+      document.getElementById("endScoreLine").textContent = "Final score: " + state.score;
+      saveScore(state.score);
+    }
+
+    document.getElementById("ariaAcc").textContent = a.total ? Math.round(100*a.correct/a.total) + "%" : "—";
+    document.getElementById("vesperAcc").textContent = v.total ? Math.round(100*v.correct/v.total) + "%" : "—";
+
+    renderLeaderboard("lbEndList");
+  }
+
+  function loadScores(){
+    try{
+      var raw = localStorage.getItem("mera_leaderboard");
+      if(!raw) return [];
+      var parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) return parsed;
+      return [];
+    }catch(e){ return []; }
+  }
+
+  function saveScore(score){
+    try{
+      var scores = loadScores();
+      scores.push(score);
+      scores.sort(function(a,b){ return b-a; });
+      scores = scores.slice(0,5);
+      localStorage.setItem("mera_leaderboard", JSON.stringify(scores));
+    }catch(e){ /* storage unavailable, skip silently */ }
+  }
+
+  function renderLeaderboard(targetId){
+    var scores = loadScores();
+    var el = document.getElementById(targetId);
+    if(!scores.length){
+      el.innerHTML = '<div class="lb-row">No runs yet on this device.</div>';
+      return;
+    }
+    el.innerHTML = scores.map(function(s,i){
+      return '<div class="lb-row'+(i===0?' top':'')+'"><span><span class="rank">'+(i+1)+'.</span>Run</span><span>'+s+' pts</span></div>';
+    }).join("");
+  }
+
+  function resetToStart(){
+    document.getElementById("endScreen").classList.remove("active");
+    document.getElementById("startScreen").classList.remove("hidden");
+    var scores = loadScores();
+    if(scores.length){
+      document.getElementById("lbMiniWrap").style.display = "block";
+      renderLeaderboard("lbMiniList");
+    }
+  }
+
+  document.getElementById("startBtn").addEventListener("click", function(){ startGame("manual"); });
+  document.getElementById("autoBtn").addEventListener("click", function(){ startGame("auto"); });
+  document.getElementById("nextBtn").addEventListener("click", handleNext);
+  document.getElementById("skipBtn").addEventListener("click", skipToResults);
+  document.getElementById("playAgainBtn").addEventListener("click", function(){
+    resetToStart();
+  });
+
+  // init
+  (function init(){
+    var scores = loadScores();
+    if(scores.length){
+      document.getElementById("lbMiniWrap").style.display = "block";
+      renderLeaderboard("lbMiniList");
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
